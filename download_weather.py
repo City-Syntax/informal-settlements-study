@@ -3,10 +3,31 @@ from bs4 import BeautifulSoup
 import re
 import csv
 import time
+from datetime import datetime
+import logging
+import sys
+import os
+
+# Set up logging with log rotation
+from logging.handlers import RotatingFileHandler
+
+log_file = 'weather_scraper.log'
+max_log_size = 5 * 1024 * 1024  # 5 MB
+log_backup_count = 3
+
+handler = RotatingFileHandler(log_file, maxBytes=max_log_size, backupCount=log_backup_count)
+logging.basicConfig(handlers=[handler], level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 def fetch_weather_data():
     url = "https://weather.com/en-IN/weather/today/l/25.60,85.15"
-    response = requests.get(url)
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        logging.error(f"Failed to fetch data: {e}")
+        return None
+
     soup = BeautifulSoup(response.content, 'html.parser')
 
     # Extracting data
@@ -33,23 +54,52 @@ def fetch_weather_data():
     return [current_time, current_temp, day_night_temp, feels_like_temp, high_low, wind, humidity, dew_point,
             pressure, uv_index, visibility, moon_phase, chance_of_rain, weather_condition]
 
-def write_to_csv(data):
-    with open('weather_data.csv', mode='a', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(data)
+def write_to_csv(data, filename):
+    try:
+        file_exists = os.path.isfile(filename)
+        with open(filename, mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            if not file_exists:
+                writer.writerow(['Date', 'Current Time', 'Current Temperature', 'Day and Night Temperatures', 
+                                 'Feels Like Temperature', 'High/Low', 'Wind', 'Humidity', 'Dew Point', 
+                                 'Pressure', 'UV Index', 'Visibility', 'Moon Phase', 'Chance of Rain', 
+                                 'Weather Condition'])
+            writer.writerow(data)
+    except IOError as e:
+        logging.error(f"Failed to write to CSV: {e}")
+
+def get_current_csv_filename():
+    return f'weather_data_{datetime.now().strftime("%Y%m")}.csv'
 
 def main():
-    header = ['Current Time', 'Current Temperature', 'Day and Night Temperatures', 'Feels Like Temperature',
-              'High/Low', 'Wind', 'Humidity', 'Dew Point', 'Pressure', 'UV Index', 'Visibility', 'Moon Phase',
-              'Chance of Rain', 'Weather Condition']
-    with open('weather_data.csv', mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(header)
-    
+    logging.info("Weather data collection started")
+
     while True:
-        data = fetch_weather_data()
-        write_to_csv(data)
-        time.sleep(300)  # 600 seconds -> 10 minutes
+        try:
+            data = fetch_weather_data()
+            if data is None:
+                time.sleep(60)  # Wait for 1 minute before retrying
+                continue
+
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            data.insert(0, current_date)
+            
+            current_csv = get_current_csv_filename()
+            write_to_csv(data, current_csv)
+
+            logging.info(f"Data collected successfully and written to {current_csv}")
+
+            time.sleep(300)  # Sleep for 5 minutes
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
+            time.sleep(60)  # Wait for 1 minute before retrying
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.info("Program interrupted by user. Exiting.")
+    except Exception as e:
+        logging.error(f"Unhandled exception: {e}")
+    finally:
+        logging.info("Program finished.")
