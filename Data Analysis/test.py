@@ -3,21 +3,16 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 
-# Load the data
 temperature_differences_df = pd.read_csv('temperature_differences.csv', parse_dates=['DateTime'])
 logger_flags_df = pd.read_csv('logger_flags.csv')
 
-# Define base colors
 shaded_base_color = mcolors.CSS4_COLORS['darkblue']
 unshaded_base_color = mcolors.CSS4_COLORS['lightblue']
 
-# Function to generate different shades of a base color
 def get_shades(base_color, num_shades):
     return [mcolors.to_rgba(base_color, alpha) for alpha in np.linspace(0.3, 1, num_shades)]
 
-# Function to plot temperature differences using shades of two colors
 def plot_temperature_differences(settlement, intervention_type, title, multi_label=False):
-    # Filter loggers for the specified settlement and intervention type
     loggers_subset = logger_flags_df[(logger_flags_df['Settlement'] == settlement) & 
                                      (logger_flags_df['Intervention'] == intervention_type)]
     
@@ -31,7 +26,6 @@ def plot_temperature_differences(settlement, intervention_type, title, multi_lab
     fig, ax = plt.subplots(figsize=(14, 8))
     lines = []
     
-    # Plot shaded loggers
     for idx, (_, row) in enumerate(shaded_loggers.iterrows()):
         logger = row['Loggers']
         intervention_start = pd.to_datetime(row['Intervention_Start'])
@@ -41,7 +35,6 @@ def plot_temperature_differences(settlement, intervention_type, title, multi_lab
                         label=f"{logger} (Shaded)", color=shaded_colors[idx], linewidth=2)
         lines.append(line)
 
-    # Plot unshaded loggers
     for idx, (_, row) in enumerate(unshaded_loggers.iterrows()):
         logger = row['Loggers']
         intervention_start = pd.to_datetime(row['Intervention_Start'])
@@ -51,7 +44,6 @@ def plot_temperature_differences(settlement, intervention_type, title, multi_lab
                         label=f"{logger} (Unshaded)", color=unshaded_colors[idx], linewidth=2)
         lines.append(line)
 
-    # Mark the intervention period
     ax.axvline(x=intervention_start, color='red', linestyle='--', linewidth=1)
     ax.text(intervention_start, ax.get_ylim()[1], 'Intervention Start', color='red', verticalalignment='top')
 
@@ -69,7 +61,6 @@ def plot_temperature_differences(settlement, intervention_type, title, multi_lab
     leg = ax.legend(loc='upper right', fancybox=True, shadow=True)
     leg.get_frame().set_alpha(0.4)
 
-    # Set up interactive legend
     lined = dict()
     for legline, origline in zip(leg.get_lines(), lines):
         legline.set_picker(5)  # 5 pts tolerance
@@ -88,20 +79,9 @@ def plot_temperature_differences(settlement, intervention_type, title, multi_lab
     plt.grid(True)
     plt.show()
 
-# Plot for Rainbow Field RBF
 plot_temperature_differences('Rainbow Field', 'RBF', 'Rainbow Field - RBF Intervention')
-
-# Plot for Rainbow Field MEB
 plot_temperature_differences('Rainbow Field', 'MEB', 'Rainbow Field - MEB Intervention')
-
-# Plot for Rainbow Field Control
 plot_temperature_differences('Rainbow Field', 'CONTROL', 'Rainbow Field - Control Loggers')
-
-# Plot for Sports Complex RBF
 plot_temperature_differences('Sports Complex', 'RBF', 'Sports Complex - RBF Intervention', multi_label=True)
-
-# Plot for Sports Complex MEB
 plot_temperature_differences('Sports Complex', 'MEB', 'Sports Complex - MEB Intervention', multi_label=True)
-
-# Plot for Sports Complex Control
 plot_temperature_differences('Sports Complex', 'CONTROL', 'Sports Complex - Control Loggers', multi_label=True)
