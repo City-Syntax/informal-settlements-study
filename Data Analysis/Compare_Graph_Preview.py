@@ -5,7 +5,21 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import seaborn as sns
 
-def create_hourly_comparison_plot(settlement, intervention_type='MEB'):
+def create_hourly_comparison_plot(settlement, intervention_type='MEB', hour_distribution=2):
+    """
+    Create comparison plot with configurable hour distribution for box plots
+    
+    Parameters:
+    -----------
+    settlement : str
+        Name of the settlement
+    intervention_type : str
+        Type of intervention (default: 'MEB')
+    hour_distribution : int
+        Number of hours to group for each box plot (default: 2)
+        Examples: 2 for 2-hour distribution, 6 for 6-hour, 24 for daily
+    """
+    
     master_df = pd.read_csv('master_dataframe.csv', parse_dates=['DateTime'])
     logger_flags_df = pd.read_csv('logger_flags.csv')
 
@@ -76,22 +90,22 @@ def create_hourly_comparison_plot(settlement, intervention_type='MEB'):
     control_boxes = []
     intervention_boxes = []
 
-    box_width = 12
-    for day in range(int(max(control_stats['Hours_After_Intervention']) / 24)):
-        hour = day * 24
-        
-        control_day = control_stats[
+    box_width = hour_distribution * 0.8
+    max_hours = max(control_stats['Hours_After_Intervention'])
+    
+    for hour in np.arange(0, max_hours, hour_distribution):
+        control_period = control_stats[
             (control_stats['Hours_After_Intervention'] >= hour) & 
-            (control_stats['Hours_After_Intervention'] < hour + 24)
+            (control_stats['Hours_After_Intervention'] < hour + hour_distribution)
         ]
-        intervention_day = intervention_stats[
+        intervention_period = intervention_stats[
             (intervention_stats['Hours_After_Intervention'] >= hour) & 
-            (intervention_stats['Hours_After_Intervention'] < hour + 24)
+            (intervention_stats['Hours_After_Intervention'] < hour + hour_distribution)
         ]
 
-        if len(control_day) > 0:
-            control_box = ax.boxplot(control_day['mean'],
-                                   positions=[hour + 12],
+        if len(control_period) > 0:
+            control_box = ax.boxplot(control_period['mean'],
+                                   positions=[hour + hour_distribution/2],
                                    widths=box_width,
                                    patch_artist=True,
                                    boxprops=dict(facecolor='lightgray', color='gray'),
@@ -99,9 +113,9 @@ def create_hourly_comparison_plot(settlement, intervention_type='MEB'):
                                    showfliers=False)
             control_boxes.append(control_box)
             
-        if len(intervention_day) > 0:
-            intervention_box = ax.boxplot(intervention_day['mean'],
-                                        positions=[hour + 12],
+        if len(intervention_period) > 0:
+            intervention_box = ax.boxplot(intervention_period['mean'],
+                                        positions=[hour + hour_distribution/2],
                                         widths=box_width,
                                         patch_artist=True,
                                         boxprops=dict(facecolor='lightblue', color='blue'),
@@ -109,41 +123,50 @@ def create_hourly_comparison_plot(settlement, intervention_type='MEB'):
                                         showfliers=False)
             intervention_boxes.append(intervention_box)
 
+    distribution_label = f'{hour_distribution}-Hour Distribution'
     legend_elements = [
-        (Patch(facecolor='lightgray', alpha=0.3), control_range, control_boxes, 'Control Range'),
-        (Patch(facecolor='lightblue', alpha=0.5), intervention_range, intervention_boxes, 'Intervention Range'),
-        (Patch(facecolor='red'), control_mean, [], 'Control Mean'),
-        (Patch(facecolor='blue'), intervention_mean, [], 'Intervention Mean')
+        (Patch(facecolor='lightgray', alpha=0.3), [control_range], 'Control Range'),
+        (Patch(facecolor='lightblue', alpha=0.5), [intervention_range], 'Intervention Range'),
+        (Patch(facecolor='red'), [control_mean], 'Control Mean'),
+        (Patch(facecolor='blue'), [intervention_mean], 'Intervention Mean'),
+        (Patch(facecolor='lightgray', alpha=1.0), 
+         control_boxes, 
+         f'Control {distribution_label}'),
+        (Patch(facecolor='lightblue', alpha=1.0), 
+         intervention_boxes, 
+         f'Intervention {distribution_label}')
     ]
 
     leg = ax.legend([item[0] for item in legend_elements],
-                   [item[3] for item in legend_elements],
+                   [item[2] for item in legend_elements],
                    loc='upper right')
 
     lined = {}
-    for legpatch, fill_between, boxes, label in legend_elements:
-        legline = leg.get_patches()[legend_elements.index((legpatch, fill_between, boxes, label))]
-        lined[legline] = [fill_between]
-        
-        if isinstance(fill_between, plt.Line2D):
-            lined[legline] = [fill_between]
-            
-        if boxes:
-            for box in boxes:
-                lined[legline].extend(box['boxes'])
-                lined[legline].extend(box['medians'])
-                lined[legline].extend(box['whiskers'])
-                lined[legline].extend(box['caps'])
+    for legpatch, elements, label in legend_elements:
+        legline = leg.get_patches()[legend_elements.index((legpatch, elements, label))]
+        if distribution_label in label:
+            lined[legline] = elements
+        else:
+            lined[legline] = elements
 
     def on_pick(event):
         legline = event.artist
         if legline in lined:
             elements = lined[legline]
-            visible = not elements[0].get_visible()
-            for element in elements:
-                element.set_visible(visible)
+            
+            if isinstance(elements[0], dict): 
+                visible = not any(box['boxes'][0].get_visible() for box in elements)
+                for box in elements:
+                    for component in box.values():
+                        for artist in component:
+                            artist.set_visible(visible)
+            else:
+                visible = not elements[0].get_visible()
+                for element in elements:
+                    element.set_visible(visible)
+            
             legline.set_alpha(1.0 if visible else 0.2)
-        fig.canvas.draw()
+            fig.canvas.draw()
 
     for legline in leg.get_patches():
         legline.set_picker(True)
@@ -152,19 +175,28 @@ def create_hourly_comparison_plot(settlement, intervention_type='MEB'):
 
     ax.set_xlabel('Hours After Intervention')
     ax.set_ylabel('Temperature (°C)')
-    ax.set_title(f'Temperature Comparison: Control vs {intervention_type} in {settlement}')
+    ax.set_title(f'Temperature Comparison: Control vs {intervention_type} in {settlement}\n')
 
-    xticks = np.arange(0, max(control_stats['Hours_After_Intervention']), 24)
+    # Set x-axis ticks
+    xticks = np.arange(0, max_hours, 24)
     ax.set_xticks(xticks)
     ax.set_xticklabels([f'Day {int(x/24)}' for x in xticks])
+    
+    # Add minor ticks
+    minor_xticks = np.arange(0, max_hours, hour_distribution)
+    ax.set_xticks(minor_xticks, minor=True)
 
     ax.grid(True, alpha=0.3)
+    ax.grid(True, which='minor', alpha=0.1)
     plt.tight_layout()
     plt.show()
 
 settlements = ['Rainbow Field', 'Sports Complex']
 intervention_types = ['MEB', 'RBF']
 
+# Change this value to adjust hour distribution like 2, 6, 24, etc.
+hour_distribution = 24 
+
 for settlement in settlements:
     for intervention_type in intervention_types:
-        create_hourly_comparison_plot(settlement, intervention_type)
+        create_hourly_comparison_plot(settlement, intervention_type, hour_distribution)
