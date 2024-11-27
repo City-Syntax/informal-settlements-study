@@ -218,8 +218,6 @@ def create_day_night_comparison_plots(
         ax.set_ylabel('Temperature (°C)')
         ax.set_title(f'{period} Temperature Comparison: Control vs {intervention_type} in {settlement}\n')
 
-
-
         def format_hour_label(hour):
             if period == "Day":
                 # For day period (6 AM - 7 PM)
