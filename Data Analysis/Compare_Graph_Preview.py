@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import seaborn as sns
 
-def create_day_night_comparison_plots(
+def create_average_day_comparison_plot(
     settlement, 
-    intervention_type='MEB', 
-    hour_distribution=2,
+    intervention_type='MEB',
+    period='Full',  # 'Full', 'Day', or 'Night'
     colors=None
 ):
     """
-    Create separate day and night comparison plots
+    Create comparison plot of temperature differences for an average 24-hour day
     
     Parameters:
     -----------
@@ -20,26 +20,29 @@ def create_day_night_comparison_plots(
         Name of the settlement
     intervention_type : str
         Type of intervention (default: 'MEB')
-    hour_distribution : int
-        Number of hours to group for each box plot
+    period : str
+        Time period to plot ('Full', 'Day', or 'Night')
     colors : dict, optional
         Dictionary to customize plot colors
     """
     default_colors = {
-        'control_range': 'lightgray',
-        'intervention_range': 'lightblue',
-        'control_mean': 'red',
-        'intervention_mean': 'blue',
-        'control_box': 'lightgray',
-        'intervention_box': 'lightblue'
+        'control_range': '#E0E0E0',
+        'intervention_range': '#ADD8E6',
+        'control_mean': '#FF6961',
+        'intervention_mean': '#6495ED',
+        'control_box': '#D3D3D3',
+        'intervention_box': '#87CEFA'
     }
     
     if colors is not None:
         default_colors.update(colors)
     
+    # Load data
     master_df = pd.read_csv('master_dataframe.csv', parse_dates=['DateTime'])
+
     logger_flags_df = pd.read_csv('logger_flags.csv')
 
+    # Get loggers
     control_loggers = logger_flags_df[
         (logger_flags_df['Settlement'] == settlement) & 
         (logger_flags_df['Intervention'] == 'CONTROL')
@@ -57,223 +60,202 @@ def create_day_night_comparison_plots(
         ]['Intervention_Start'].iloc[0]
     )
 
+    # Process data
     master_df['DateTime'] = pd.to_datetime(master_df['DateTime'])
     post_intervention_df = master_df[master_df['DateTime'] >= intervention_start].copy()
-    post_intervention_df['Hours_After_Intervention'] = (
-        post_intervention_df['DateTime'] - intervention_start
-    ).dt.total_seconds() / 3600
-    
-    # Split into day and night
     post_intervention_df['Hour'] = post_intervention_df['DateTime'].dt.hour
-    day_df = post_intervention_df[
-        (post_intervention_df['Hour'] >= 6) & 
-        (post_intervention_df['Hour'] < 19)
-    ].copy()
-    night_df = post_intervention_df[
-        (post_intervention_df['Hour'] < 6) | 
-        (post_intervention_df['Hour'] >= 19)
-    ].copy()
+
+
+    # Define hours range based on period
+    if period == 'Day':
+        post_intervention_df = post_intervention_df[
+            (post_intervention_df['Hour'] >= 6) & 
+            (post_intervention_df['Hour'] < 19)
+        ]
+        hours_range = range(6, 19)
+    elif period == 'Night':
+        post_intervention_df = post_intervention_df[
+            (post_intervention_df['Hour'] < 6) | 
+            (post_intervention_df['Hour'] >= 19)
+        ]
+        evening_hours = list(range(19, 24))
+        morning_hours = list(range(0, 6))
+        hours_range = evening_hours + morning_hours
+    else:  # Full day
+        hours_range = range(24)
 
     def calculate_hourly_stats(loggers, df):
-        hourly_stats = pd.DataFrame()
-        logger_data = df[loggers]
-        hourly_stats['max'] = logger_data.max(axis=1)
-        hourly_stats['min'] = logger_data.min(axis=1)
-        hourly_stats['mean'] = logger_data.mean(axis=1)
-        hourly_stats['std'] = logger_data.std(axis=1)
-        hourly_stats['Hours_After_Intervention'] = df['Hours_After_Intervention']
-        return hourly_stats
+        hourly_stats = []
 
-    def create_plot(data_df, period):
-        control_stats = calculate_hourly_stats(control_loggers, data_df)
-        intervention_stats = calculate_hourly_stats(intervention_loggers, data_df)
+        for hour in hours_range:
+            hour_data = df[df['Hour'] == hour][loggers]
+            hour_data = hour_data.replace(0, np.nan)
+            hour_data = hour_data.dropna(how='all')
 
-        fig, ax = plt.subplots(figsize=(15, 8))
+            if not hour_data.empty:
+                stats = {
+                    'Hour': hour,
+                    'plot_hour': hour if period != 'Night' else (hour if hour >= 19 else hour + 24),
+                    'max': hour_data.max(axis=1).mean(),
+                    'min': hour_data.min(axis=1).mean(),
+                    'mean': hour_data.mean(axis=1).mean(),
+                    'std': hour_data.std(axis=1).mean(),
+                    'values': hour_data.values.flatten(),
+                }
+                hourly_stats.append(stats)
 
-        control_range = ax.fill_between(
-            control_stats['Hours_After_Intervention'],
-            control_stats['max'],
-            control_stats['min'],
-            alpha=0.3,
-            color=default_colors['control_range'],
-            label='Control Range'
-        )
+        return pd.DataFrame(hourly_stats)
 
-        intervention_range = ax.fill_between(
-            intervention_stats['Hours_After_Intervention'],
-            intervention_stats['max'],
-            intervention_stats['min'],
-            alpha=0.5,
-            color=default_colors['intervention_range'],
-            label='Intervention Range'
-        )
 
-        control_mean, = ax.plot(
-            control_stats['Hours_After_Intervention'],
-            control_stats['mean'],
-            color=default_colors['control_mean'],
-            label='Control Mean',
-            linewidth=2
-        )
-        
-        intervention_mean, = ax.plot(
-            intervention_stats['Hours_After_Intervention'],
-            intervention_stats['mean'],
-            color=default_colors['intervention_mean'],
-            label='Intervention Mean',
-            linewidth=2
-        )
+    control_stats = calculate_hourly_stats(control_loggers, post_intervention_df)
+    intervention_stats = calculate_hourly_stats(intervention_loggers, post_intervention_df)
 
-        control_boxes = []
-        intervention_boxes = []
+    fig, ax = plt.subplots(figsize=(15, 10))
 
-        box_width = hour_distribution * 0.8
-        max_hours = max(control_stats['Hours_After_Intervention'])
-        
-        for hour in np.arange(0, max_hours, hour_distribution):
-            control_period = control_stats[
-                (control_stats['Hours_After_Intervention'] >= hour) & 
-                (control_stats['Hours_After_Intervention'] < hour + hour_distribution)
-            ]
-            intervention_period = intervention_stats[
-                (intervention_stats['Hours_After_Intervention'] >= hour) & 
-                (intervention_stats['Hours_After_Intervention'] < hour + hour_distribution)
-            ]
+    # Plot ranges using plot_hour instead of Hour for night period
+    x_values = control_stats['plot_hour'] if period == 'Night' else control_stats['Hour']
+    
+    control_range = ax.fill_between(x_values,
+                                  control_stats['max'],
+                                  control_stats['min'],
+                                  alpha=0.3,
+                                  color=default_colors['control_range'],
+                                  label='Control Range')
 
-            if len(control_period) > 0:
-                control_box = ax.boxplot(
-                    control_period['mean'],
-                    positions=[hour + hour_distribution/2],
-                    widths=box_width,
-                    patch_artist=True,
-                    boxprops=dict(facecolor=default_colors['control_box'], color='gray'),
-                    medianprops=dict(color=default_colors['control_mean']),
-                    showfliers=False
-                )
-                control_boxes.append(control_box)
-                
-            if len(intervention_period) > 0:
-                intervention_box = ax.boxplot(
-                    intervention_period['mean'],
-                    positions=[hour + hour_distribution/2],
-                    widths=box_width,
-                    patch_artist=True,
-                    boxprops=dict(facecolor=default_colors['intervention_box'], color='blue'),
-                    medianprops=dict(color=default_colors['intervention_mean']),
-                    showfliers=False
-                )
-                intervention_boxes.append(intervention_box)
+    x_values = intervention_stats['plot_hour'] if period == 'Night' else intervention_stats['Hour']
+    
+    intervention_range = ax.fill_between(x_values,
+                                       intervention_stats['max'],
+                                       intervention_stats['min'],
+                                       alpha=0.5,
+                                       color=default_colors['intervention_range'],
+                                       label='Intervention Range')
 
-        distribution_label = f'{hour_distribution}-Hour Distribution'
-        legend_elements = [
-            (Patch(facecolor=default_colors['control_range'], alpha=0.3), [control_range], 'Control Range'),
-            (Patch(facecolor=default_colors['intervention_range'], alpha=0.5), [intervention_range], 'Intervention Range'),
-            (Patch(facecolor=default_colors['control_mean']), [control_mean], 'Control Mean'),
-            (Patch(facecolor=default_colors['intervention_mean']), [intervention_mean], 'Intervention Mean'),
-            (Patch(facecolor=default_colors['control_box'], alpha=1.0), 
-             control_boxes, 
-             f'Control {distribution_label}'),
-            (Patch(facecolor=default_colors['intervention_box'], alpha=1.0), 
-             intervention_boxes, 
-             f'Intervention {distribution_label}')
-        ]
+    # Plot mean lines
+    x_values = control_stats['plot_hour'] if period == 'Night' else control_stats['Hour']
+    control_mean, = ax.plot(x_values,
+                          control_stats['mean'],
+                          color=default_colors['control_mean'],
+                          label='Control Mean',
+                          linewidth=2)
+    
+    x_values = intervention_stats['plot_hour'] if period == 'Night' else intervention_stats['Hour']
+    intervention_mean, = ax.plot(x_values,
+                               intervention_stats['mean'],
+                               color=default_colors['intervention_mean'],
+                               label='Intervention Mean',
+                               linewidth=2)
 
-        leg = ax.legend([item[0] for item in legend_elements],
-                       [item[2] for item in legend_elements],
-                       loc='upper right')
+    ax.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+    
+    # Create box plots
+    control_boxes = []
+    intervention_boxes = []
+    
+    for _, row in control_stats.iterrows():
+        x_pos = row['plot_hour'] if period == 'Night' else row['Hour']
+        control_box = ax.boxplot(row['values'],
+                                positions=[x_pos],
+                                widths=0.5,
+                                patch_artist=True,
+                                boxprops=dict(facecolor=default_colors['control_box'], color='gray'),
+                                medianprops=dict(color=default_colors['control_mean']),
+                                showfliers=False)
+        control_boxes.append(control_box)
+    
+    for _, row in intervention_stats.iterrows():
+        x_pos = row['plot_hour'] if period == 'Night' else row['Hour']
+        intervention_box = ax.boxplot(row['values'],
+                                    positions=[x_pos],
+                                    widths=0.5,
+                                    patch_artist=True,
+                                    boxprops=dict(facecolor=default_colors['intervention_box'], color='blue'),
+                                    medianprops=dict(color=default_colors['intervention_mean']),
+                                    showfliers=False)
+        intervention_boxes.append(intervention_box)
 
-        lined = {}
-        for legpatch, elements, label in legend_elements:
-            legline = leg.get_patches()[legend_elements.index((legpatch, elements, label))]
-            if distribution_label in label:
-                lined[legline] = elements
-            else:
-                lined[legline] = elements
+    # Create legend
+    legend_elements = [
+        (Patch(facecolor=default_colors['control_range'], alpha=0.3), [control_range], 'Control Range'),
+        (Patch(facecolor=default_colors['intervention_range'], alpha=0.5), [intervention_range], 'Intervention Range'),
+        (Patch(facecolor=default_colors['control_mean']), [control_mean], 'Control Mean'),
+        (Patch(facecolor=default_colors['intervention_mean']), [intervention_mean], 'Intervention Mean'),
+        (Patch(facecolor=default_colors['control_box'], alpha=1.0), 
+         control_boxes, 
+         'Control Hourly Distribution'),
+        (Patch(facecolor=default_colors['intervention_box'], alpha=1.0), 
+         intervention_boxes, 
+         'Intervention Hourly Distribution')
+    ]
 
-        def on_pick(event):
-            legline = event.artist
-            if legline in lined:
-                elements = lined[legline]
-                
-                if isinstance(elements[0], dict): 
-                    visible = not any(box['boxes'][0].get_visible() for box in elements)
-                    for box in elements:
-                        for component in box.values():
-                            for artist in component:
-                                artist.set_visible(visible)
-                else:
-                    visible = not elements[0].get_visible()
-                    for element in elements:
-                        element.set_visible(visible)
-                
-                legline.set_alpha(1.0 if visible else 0.2)
-                fig.canvas.draw()
+    leg = ax.legend([item[0] for item in legend_elements],
+                   [item[2] for item in legend_elements],
+                   loc='upper right')
 
-        for legline in leg.get_patches():
-            legline.set_picker(True)
-
-        fig.canvas.mpl_connect('pick_event', on_pick)
-
-        ax.set_xlabel('Hours After Intervention')
-        ax.set_ylabel('Temperature (°C)')
-        ax.set_title(f'{period} Temperature Comparison: Control vs {intervention_type} in {settlement}\n')
-
-        def format_hour_label(hour):
-            if period == "Day":
-                # For day period (6 AM - 7 PM)
-                actual_hour = (hour % 24) + 6  # Start from 6 AM
-                if actual_hour >= 24:
-                    actual_hour -= 24
-            else:
-                # For night period (7 PM - 6 AM)
-                actual_hour = (hour % 24) + 19  # Start from 7 PM
-                if actual_hour >= 24:
-                    actual_hour -= 24
-            return f"{int(actual_hour):02d}:00"
-
-        xticks_major = np.arange(0, max_hours, 24)
-        ax.set_xticks(xticks_major)
-        ax.set_xticklabels([f'Day {int(x/24)}' for x in xticks_major])
-
-        plt.setp(ax.get_xticklabels(), rotation=90, ha='right')
-
-        if period == "Day":
-            hours_in_day = 13  # 6 AM to 7 PM = 13 hours
-            xticks_minor = np.arange(0, max_hours, hour_distribution)
-            xticks_minor = xticks_minor[xticks_minor % 24 < hours_in_day]
+    # Interactive legend
+    lined = {}
+    for legpatch, elements, label in legend_elements:
+        legline = leg.get_patches()[legend_elements.index((legpatch, elements, label))]
+        if 'Distribution' in label:
+            lined[legline] = elements
         else:
-            hours_in_night = 11  # 7 PM to 6 AM = 11 hours
-            xticks_minor = np.arange(0, max_hours, hour_distribution)
-            xticks_minor = xticks_minor[xticks_minor % 24 >= hours_in_night]
+            lined[legline] = elements
 
-        ax.set_xticks(xticks_minor, minor=True)
+    def on_pick(event):
+        legline = event.artist
+        if legline in lined:
+            elements = lined[legline]
+            
+            if isinstance(elements[0], dict): 
+                visible = not any(box['boxes'][0].get_visible() for box in elements)
+                for box in elements:
+                    for component in box.values():
+                        for artist in component:
+                            artist.set_visible(visible)
+            else:
+                visible = not elements[0].get_visible()
+                for element in elements:
+                    element.set_visible(visible)
+            
+            legline.set_alpha(1.0 if visible else 0.2)
+            fig.canvas.draw()
 
-        minor_labels = [format_hour_label(h) for h in xticks_minor]
-        ax.set_xticklabels(minor_labels, minor=True)
+    for legline in leg.get_patches():
+        legline.set_picker(True)
 
-        plt.setp(ax.get_xticklabels(minor=True), rotation=90, ha='right')
+    fig.canvas.mpl_connect('pick_event', on_pick)
 
-        plt.subplots_adjust(bottom=0.2)
+    # Set labels and title
+    ax.set_xlabel('Hour of Day')
+    ax.set_ylabel('Temperature (°C)')
+    period_str = f" ({period}time)" if period != 'Full' else ""
+    ax.set_title(f'Average Daily Temperature: Control vs {intervention_type} in {settlement}')
 
-        if period == "Day":
-            time_text = "6 AM - 7 PM"
-        else:
-            time_text = "7 PM - 6 AM"
-        plt.figtext(0.02, 0.98, f"Time period: {time_text}", fontsize=10, ha='left', va='top')
+    # Set x-axis ticks and limits based on period
+    if period == 'Night':
+        plot_hours = list(range(19, 24)) + list(range(24, 30))  # 19-23 and 24-29 (0-5)
+        ax.set_xticks(plot_hours)
+        hour_labels = [f'{h:02d}:00' if h < 24 else f'{h-24:02d}:00' for h in plot_hours]
+        ax.set_xticklabels(hour_labels)
+        ax.set_xlim(18.5, 29.5)
+    elif period == 'Day':
+        ax.set_xticks(list(hours_range))
+        ax.set_xticklabels([f'{hour:02d}:00' for hour in hours_range])
+        ax.set_xlim(5.5, 19.5)
+    else:  # Full day
+        ax.set_xticks(list(hours_range))
+        ax.set_xticklabels([f'{hour:02d}:00' for hour in hours_range])
+        ax.set_xlim(-0.5, 23.5)
 
-        # Add grid
-        ax.grid(True, alpha=0.3)
-        ax.grid(True, which='minor', alpha=0.1)
+    # Add grid
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
-        plt.tight_layout()
-        plt.show()
-
-    create_plot(day_df, "Day")
-    create_plot(night_df, "Night")
-
+# Settings
 settlements = ['Rainbow Field', 'Sports Complex']
 intervention_types = ['MEB', 'RBF']
-hour_distribution = 6  # Change this value to adjust hour distribution
+periods = ['Full', 'Day', 'Night']
 
 custom_colors = {
     'control_range': '#E0E0E0',  # Light gray
@@ -284,11 +266,13 @@ custom_colors = {
     'intervention_box': '#87CEFA'  # Light sky blue
 }
 
+# Generate all plots
 for settlement in settlements:
     for intervention_type in intervention_types:
-        create_day_night_comparison_plots(
-            settlement, 
-            intervention_type, 
-            hour_distribution,
-            colors=custom_colors
-        )
+        for period in periods:
+            create_average_day_comparison_plot(
+                settlement, 
+                intervention_type,
+                period,
+                colors=custom_colors
+            )
