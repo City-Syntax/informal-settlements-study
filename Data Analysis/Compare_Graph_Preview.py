@@ -12,7 +12,7 @@ def create_average_day_comparison_plot(
     colors=None
 ):
     """
-    Create comparison plot of temperature differences for an average 24-hour day
+    Create comparison plot of temperatures for an average 24-hour day
     
     Parameters:
     -----------
@@ -39,9 +39,8 @@ def create_average_day_comparison_plot(
     
     # Load data
     master_df = pd.read_csv('master_dataframe.csv', parse_dates=['DateTime'])
-
     logger_flags_df = pd.read_csv('logger_flags.csv')
-
+    
     # Get loggers
     control_loggers = logger_flags_df[
         (logger_flags_df['Settlement'] == settlement) & 
@@ -52,20 +51,19 @@ def create_average_day_comparison_plot(
         (logger_flags_df['Settlement'] == settlement) & 
         (logger_flags_df['Intervention'] == intervention_type)
     ]['Loggers'].tolist()
-
+    
     intervention_start = pd.to_datetime(
         logger_flags_df[
             (logger_flags_df['Settlement'] == settlement) & 
             (logger_flags_df['Intervention'] == intervention_type)
         ]['Intervention_Start'].iloc[0]
     )
-
+    
     # Process data
     master_df['DateTime'] = pd.to_datetime(master_df['DateTime'])
     post_intervention_df = master_df[master_df['DateTime'] >= intervention_start].copy()
     post_intervention_df['Hour'] = post_intervention_df['DateTime'].dt.hour
-
-
+    
     # Define hours range based on period
     if period == 'Day':
         post_intervention_df = post_intervention_df[
@@ -83,15 +81,15 @@ def create_average_day_comparison_plot(
         hours_range = evening_hours + morning_hours
     else:  # Full day
         hours_range = range(24)
-
+    
     def calculate_hourly_stats(loggers, df):
         hourly_stats = []
-
+        
         for hour in hours_range:
             hour_data = df[df['Hour'] == hour][loggers]
             hour_data = hour_data.replace(0, np.nan)
             hour_data = hour_data.dropna(how='all')
-
+            
             if not hour_data.empty:
                 stats = {
                     'Hour': hour,
@@ -99,19 +97,18 @@ def create_average_day_comparison_plot(
                     'max': hour_data.max(axis=1).mean(),
                     'min': hour_data.min(axis=1).mean(),
                     'mean': hour_data.mean(axis=1).mean(),
-                    'std': hour_data.std(axis=1).mean(),
-                    'values': hour_data.values.flatten(),
+                    'std': hour_data.mean(axis=1).std(),
+                    'values': hour_data.mean(axis=1).values
                 }
                 hourly_stats.append(stats)
-
+        
         return pd.DataFrame(hourly_stats)
-
-
+    
     control_stats = calculate_hourly_stats(control_loggers, post_intervention_df)
     intervention_stats = calculate_hourly_stats(intervention_loggers, post_intervention_df)
-
+    
     fig, ax = plt.subplots(figsize=(15, 10))
-
+    
     # Plot ranges using plot_hour instead of Hour for night period
     x_values = control_stats['plot_hour'] if period == 'Night' else control_stats['Hour']
     
@@ -121,7 +118,7 @@ def create_average_day_comparison_plot(
                                   alpha=0.3,
                                   color=default_colors['control_range'],
                                   label='Control Range')
-
+    
     x_values = intervention_stats['plot_hour'] if period == 'Night' else intervention_stats['Hour']
     
     intervention_range = ax.fill_between(x_values,
@@ -130,7 +127,7 @@ def create_average_day_comparison_plot(
                                        alpha=0.5,
                                        color=default_colors['intervention_range'],
                                        label='Intervention Range')
-
+    
     # Plot mean lines
     x_values = control_stats['plot_hour'] if period == 'Night' else control_stats['Hour']
     control_mean, = ax.plot(x_values,
@@ -145,8 +142,6 @@ def create_average_day_comparison_plot(
                                color=default_colors['intervention_mean'],
                                label='Intervention Mean',
                                linewidth=2)
-
-    ax.axhline(y=0, color='black', linestyle='--', alpha=0.5)
     
     # Create box plots
     control_boxes = []
@@ -155,12 +150,12 @@ def create_average_day_comparison_plot(
     for _, row in control_stats.iterrows():
         x_pos = row['plot_hour'] if period == 'Night' else row['Hour']
         control_box = ax.boxplot(row['values'],
-                                positions=[x_pos],
-                                widths=0.5,
-                                patch_artist=True,
-                                boxprops=dict(facecolor=default_colors['control_box'], color='gray'),
-                                medianprops=dict(color=default_colors['control_mean']),
-                                showfliers=False)
+                               positions=[x_pos],
+                               widths=0.5,
+                               patch_artist=True,
+                               boxprops=dict(facecolor=default_colors['control_box'], color='gray'),
+                               medianprops=dict(color=default_colors['control_mean']),
+                               showfliers=False)
         control_boxes.append(control_box)
     
     for _, row in intervention_stats.iterrows():
@@ -173,7 +168,7 @@ def create_average_day_comparison_plot(
                                     medianprops=dict(color=default_colors['intervention_mean']),
                                     showfliers=False)
         intervention_boxes.append(intervention_box)
-
+    
     # Create legend
     legend_elements = [
         (Patch(facecolor=default_colors['control_range'], alpha=0.3), [control_range], 'Control Range'),
@@ -187,11 +182,11 @@ def create_average_day_comparison_plot(
          intervention_boxes, 
          'Intervention Hourly Distribution')
     ]
-
+    
     leg = ax.legend([item[0] for item in legend_elements],
                    [item[2] for item in legend_elements],
                    loc='upper right')
-
+    
     # Interactive legend
     lined = {}
     for legpatch, elements, label in legend_elements:
@@ -200,7 +195,7 @@ def create_average_day_comparison_plot(
             lined[legline] = elements
         else:
             lined[legline] = elements
-
+    
     def on_pick(event):
         legline = event.artist
         if legline in lined:
@@ -219,18 +214,17 @@ def create_average_day_comparison_plot(
             
             legline.set_alpha(1.0 if visible else 0.2)
             fig.canvas.draw()
-
+    
     for legline in leg.get_patches():
         legline.set_picker(True)
-
     fig.canvas.mpl_connect('pick_event', on_pick)
-
+    
     # Set labels and title
     ax.set_xlabel('Hour of Day')
     ax.set_ylabel('Temperature (°C)')
     period_str = f" ({period}time)" if period != 'Full' else ""
-    ax.set_title(f'Average Daily Temperature: Control vs {intervention_type} in {settlement}')
-
+    ax.set_title(f'Average Daily Temperature{period_str}: Control vs {intervention_type} in {settlement}')
+    
     # Set x-axis ticks and limits based on period
     if period == 'Night':
         plot_hours = list(range(19, 24)) + list(range(24, 30))  # 19-23 and 24-29 (0-5)
@@ -246,7 +240,7 @@ def create_average_day_comparison_plot(
         ax.set_xticks(list(hours_range))
         ax.set_xticklabels([f'{hour:02d}:00' for hour in hours_range])
         ax.set_xlim(-0.5, 23.5)
-
+    
     # Add grid
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -256,7 +250,6 @@ def create_average_day_comparison_plot(
 settlements = ['Rainbow Field', 'Sports Complex']
 intervention_types = ['MEB', 'RBF']
 periods = ['Full', 'Day', 'Night']
-
 custom_colors = {
     'control_range': '#E0E0E0',  # Light gray
     'intervention_range': '#ADD8E6',  # Light blue
