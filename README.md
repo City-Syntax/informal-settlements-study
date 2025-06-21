@@ -1,8 +1,8 @@
-# Cooling Interventions for Informal Settlements: A Randomized Controlled Trial in Bihar, India
+# Low Cost Interventions for Informal Settlements - A Study in Bihar, India
 
 ## Abstract
 
-This repository contains the complete dataset, analysis code, and supplementary materials for a randomized controlled trial evaluating the effectiveness of low-cost cooling interventions in informal settlements in Bihar, India. We examine two passive cooling technologies: Radiant Barrier Foils (RBF) and Mylar Emergency Blankets (MEB) applied to informal housing structures constructed from scrap materials. Using a difference-in-differences design with over 2.28 million temperature observations from 42 data loggers across two settlement locations, we find that both interventions provide significant cooling effects, with RBF reducing indoor temperatures by 1.1-1.2°C and MEB by 1.0-1.3°C relative to control structures.
+This repository contains the complete dataset, analysis code, and supplementary materials evaluating the effectiveness of low-cost cooling interventions in informal settlements in Bihar, India. We examine two passive cooling technologies: Radiant Barrier Foils (RBF) and Mylar Emergency Blankets (MEB) applied to informal housing structures constructed from scrap materials. Using a difference-in-differences design with over 2.28 million temperature observations from 42 data loggers across two settlement locations, we find that both interventions provide significant cooling effects, with RBF reducing indoor temperatures by 1.1-1.2°C and MEB by 1.0-1.3°C relative to control structures.
 
 ## Repository Structure
 
