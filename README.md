@@ -1,29 +1,46 @@
-# Cooling Interventions for Informal Settlements: A Randomized Controlled Trial in Bihar, India
+## Cooling Interventions for Informal Settlements: A Study in Bihar, India
 
-## Abstract
+### Overview
+This repository contains data, analysis code, and figures for a study evaluating low-cost passive cooling interventions for informal housing in Bihar, India. We study Radiant Barrier Foils (RBF) and Mylar Emergency Blankets (MEB) against controls using minute-level indoor temperatures from 42 loggers across two settlements. Using a difference-in-differences design with over 2.28 million 
+temperature observations from 42 data loggers across two settlement locations, 
+we find that both interventions provide significant cooling effects, with RBF 
+reducing indoor temperatures by 1.1-1.2°C and MEB by 1.0-1.3°C relative to 
+control structures.
 
-This repository contains the complete dataset, analysis code, and supplementary materials for a randomized controlled trial evaluating the effectiveness of low-cost cooling interventions in informal settlements in Bihar, India. We examine two passive cooling technologies: Radiant Barrier Foils (RBF) and Mylar Emergency Blankets (MEB) applied to informal housing structures constructed from scrap materials. Using a difference-in-differences design with over 2.28 million temperature observations from 42 data loggers across two settlement locations, we find that both interventions provide significant cooling effects, with RBF reducing indoor temperatures by 1.1-1.2°C and MEB by 1.0-1.3°C relative to control structures.
+### Quickstart
+- Create and activate a virtual environment (Windows PowerShell):
+  - `python -m venv .venv`
+  - `.\.venv\Scripts\Activate.ps1`
+- Install dependencies: `pip install -r requirements.txt`
+- Open the notebooks in `Data Analysis/` to reproduce the analysis, or run the plotting scripts below to regenerate figures.
+- Important: The plotting scripts expect the working directory to be `Data Analysis/`. See the commands below.
 
-## Repository Structure
-
+### Repository Structure (key items)
 ```
 ├── Data Analysis/
-│   ├── data_analysis.ipynb              # Primary data processing and analysis
-│   ├── did_analysis.ipynb               # Difference-in-differences models
-│   ├── did_analysis (new).ipynb         # Updated DID analysis
-│   ├── did_analysis (old).ipynb         # Previous version for reference
-│   ├── master_dataframe.csv             # Consolidated minute-by-minute data
-│   ├── did_df.csv                       # Processed data for DID analysis
-│   ├── did_regression_results.txt       # Statistical model outputs
-│   ├── Extended_Data_Table_1.html       # Publication-ready results table
-│   ├── Cleaned Data/                    # Processed logger data files
-│   ├── Loggers Data/                    # Raw temperature logger data
-│   └── [Additional analysis files and visualizations]
-├── Environmental Data.csv               # Hourly weather station data
-└── download_weather.py                  # Weather data collection script
+│   ├── data_analysis.ipynb              # Primary data processing and descriptive analysis
+│   ├── did_analysis.ipynb               # Difference-in-differences models (main results)
+│   ├── did_analysis (new|old).ipynb     # Updated and archival DID analyses
+│   ├── Compare_Graph_Preview.py         # Average daily comparison plots
+│   ├── graph.py                         # EDA: scatter/box plots, correlations, t-tests
+│   ├── hexbin_plots.py                  # Temperature–humidity hexbin plots with WBGT guides
+│   ├── master_dataframe.csv             # Minute-by-minute, analysis-ready panel
+│   ├── did_df.csv                       # Processed dataset for DID models
+│   ├── did_regression_results.txt       # Model outputs
+│   ├── Extended_Data_Table_1.html       # Publication-ready table
+│   ├── Cleaned Data/                    # Processed logger files per device
+│   └── Loggers Data/                    # Raw logger exports
+├── Environmental Data.csv               # Hourly weather data (joined in analysis)
+├── download_weather.py                  # Weather.com scraper (optional; not required to reproduce)
+└── requirements.txt                     # Python dependencies
 ```
 
-## Study Design
+### How to Reproduce Key Figures
+Run from the repository root:
+- `cd "Data Analysis"`
+- Average daily temperature difference comparisons: `python Compare_Graph_Preview.py`
+- Temperature–humidity hexbin plots with WBGT isolines: `python hexbin_plots.py`
+- Exploratory plots and simple tests: `python graph.py`
 
 ### Experimental Setting
 - **Location**: Informal settlements in Bihar, India
@@ -37,24 +54,16 @@ This repository contains the complete dataset, analysis code, and supplementary 
 2. **Mylar Emergency Blankets (MEB)**: Reflective emergency blankets applied to roofing materials  
 3. **Control**: No intervention
 
-### Randomization and Treatment Assignment
-- **Stratified randomization** by settlement location and shade status
-- **Treatment groups**:
-  - RBF: 17 structures (9 shaded, 8 unshaded)
-  - MEB: 12 structures (7 shaded, 5 unshaded)
-  - Control: 13 structures (7 shaded, 6 unshaded)
+### Data Overview
+- Logger network: 42 indoor temperature/humidity devices across two settlements (Rainbow Field, Sports Complex); 1-minute sampling.
+- Intervention periods per device are specified in `Data Analysis/logger_flags.csv`:
+  - Columns include `Loggers`, `Settlement`, `Intervention` (`RBF`, `MEB`, `CONTROL`), `Shaded` (boolean), `Intervention_Start`, `Post_Intervention_End`.
+- `Data Analysis/temperature_differences.csv`:
+  - Wide format with `DateTime` and one column per logger of indoor–outdoor temperature differences (°C).
+- `Environmental Data.csv`:
+  - Hourly weather time series joined to logger data in notebooks/scripts.
 
-### Data Collection
-- **High-frequency temperature monitoring**: Minute-by-minute recordings using U-series and R-series data loggers
-- **Environmental controls**: Hourly weather station data with minute-level interpolation
-- **Baseline period**: 15 days pre-intervention
-- **Treatment period**: Implementation on July 15-20, 2024
-- **Follow-up period**: 2-3 weeks post-intervention
-
-## Key Findings
-
-### Primary Results (Difference-in-Differences Analysis)
-
+### Key Findings (from DID models)
 | Model Specification | RBF Effect (°C) | MEB Effect (°C) | p-value |
 |---------------------|-----------------|-----------------|---------|
 | Basic DiD | -1.122*** | -1.122*** | <0.01 |
@@ -62,110 +71,28 @@ This repository contains the complete dataset, analysis code, and supplementary 
 | + Environmental Controls | -0.861* | -0.683 | 0.078 |
 | + Heterogeneous Effects | -1.109** | -1.298** | <0.05 |
 
-**Note**: Negative coefficients indicate cooling effects. Standard errors clustered at logger level.
+Negative coefficients indicate cooling. Standard errors clustered at the logger level.
 
-### Heterogeneous Treatment Effects
-- **Shade interactions**: Both interventions show enhanced effectiveness (reduced cooling) in shaded structures
-- **Time-of-day effects**: Cooling benefits most pronounced during daytime hours
-- **Settlement differences**: Sports Complex settlement shows different baseline temperature patterns
-
-### Robustness
-- Results robust across multiple model specifications
-- Large sample size (N = 2,279,880 observations)
-- Controls for environmental variation, settlement fixed effects, and time trends
-
-## Methodology
-
-### Statistical Approach
-We employ a difference-in-differences design comparing treated and control structures before and after intervention implementation:
-
-```
-Y_it = α + β₁(Post_t) + β₂(Treatment_i) + β₃(Post_t × Treatment_i) + X_it'γ + ε_it
-```
-
-Where:
-- `Y_it` = Temperature difference (indoor - outdoor) for structure i at time t
-- `Post_t` = Indicator for post-intervention period
-- `Treatment_i` = Indicator for treatment assignment
-- `X_it` = Environmental and structural controls
-
-### Key Variables
-- **Outcome**: Indoor temperature minus outdoor temperature (°C)
-- **Treatment**: RBF vs. MEB vs. Control
-- **Controls**: Settlement location, shade status, time of day, weather conditions
-
-## Data Description
-
-### Logger Network
-- **42 temperature/humidity loggers** deployed across structures
-- **U-series loggers**: Higher precision sensors (29 units)
-- **R-series loggers**: Standard temperature sensors (13 units)
-- **Sampling frequency**: 1-minute intervals
-- **Data quality**: Missing data handling and outlier detection implemented
-
-### Environmental Data
-- **Weather station**: Kankarbagh, Patna (nearest available)
-- **Variables**: Temperature, humidity, wind speed, solar radiation, precipitation
-- **Temporal resolution**: Hourly observations with minute-level interpolation
-
-## Reproducibility
+### Method Summary
+We estimate difference-in-differences models comparing treated and control structures before and after intervention deployment, with settlement fixed effects, time controls, and environmental covariates. Outcome is indoor–outdoor temperature (°C).
 
 ### Software Requirements
 - Python 3.8+
-- Required packages: `pandas`, `numpy`, `matplotlib`, `seaborn`, `statsmodels`, `scipy`
-- Jupyter Notebook environment
+- Dependencies in `requirements.txt` (includes `pandas`, `numpy`, `matplotlib`, `seaborn`, `scipy`, `statsmodels`, `scikit-learn`, `requests`, `beautifulsoup4`, `jupyter`).
 
-### Key Analysis Files
-1. **`data_analysis.ipynb`**: Data preprocessing, cleaning, and descriptive analysis
-2. **`did_analysis.ipynb`**: Main difference-in-differences estimation
-3. **`master_dataframe.csv`**: Analysis-ready dataset
+### Weather Scraper (optional)
+`download_weather.py` scrapes current conditions from Weather.com at fixed intervals and appends to monthly CSVs (`weather_data_YYYYMM.csv`). It is not required to reproduce the paper figures and may break if the site layout changes.
+- Run: `python download_weather.py`
+- Stop with Ctrl+C. Logs are written to `weather_scraper.log` with rotation.
 
-### Replication Instructions
-1. Clone this repository
-2. Install required Python packages: `pip install -r requirements.txt`
-3. Run notebooks in the following order:
-   - `data_analysis.ipynb` (data preprocessing)
-   - `did_analysis.ipynb` (main analysis)
+### Ethical Considerations
+- Community consent obtained; identifiers anonymized; materials left with participants.
 
-## Policy Implications
+### License
+MIT License. See `LICENSE`.
 
-### Cost-Effectiveness
-- **Low-cost interventions**: Materials cost <$10 USD per structure
+### Effectiveness
 - **Significant cooling benefits**: 1-1.3°C temperature reduction
 - **Easy implementation**: Suitable for community-led deployment
 
-### Scalability
-- Applicable to similar informal settlement contexts
-- Minimal technical expertise required for installation
-- Potential for integration with existing housing improvement programs
-
-## Ethical Considerations
-
-- **Community consent**: Obtained from all participating households
-- **Participant welfare**: No adverse effects documented
-- **Data privacy**: All location and household identifiers anonymized
-- **Benefit sharing**: Intervention materials left with participating households
-
-
-## Data Availability
-
-All data and code are made available under the MIT License. The complete dataset includes:
-- Raw temperature logger data (`/Data Analysis/Loggers Data/`)
-- Processed analysis datasets (`master_dataframe.csv`, `did_df.csv`)
-- Environmental data (`Environmental Data.csv`)
-- Complete analysis code (Jupyter notebooks)
-
-## Contact
-
-For questions about the data or methodology, please contact:
-- **Corresponding Author**: Yu Qian Ang
-- **Data Inquiries**: yuqian@nus.edu.sg
-- **GitHub Issues**: Use the Issues tab for technical questions
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-**Keywords**: Informal settlements, passive cooling, climate adaptation, randomized controlled trial, difference-in-differences, urban heat, housing interventions, Bihar, India 
+Keywords: informal settlements, passive cooling, difference-in-differences, urban heat, Bihar, India
