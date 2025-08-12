@@ -35,13 +35,6 @@ control structures.
 └── requirements.txt                     # Python dependencies
 ```
 
-### How to Reproduce Key Figures
-Run from the repository root:
-- `cd "Data Analysis"`
-- Average daily temperature difference comparisons: `python Compare_Graph_Preview.py`
-- Temperature–humidity hexbin plots with WBGT isolines: `python hexbin_plots.py`
-- Exploratory plots and simple tests: `python graph.py`
-
 ### Experimental Setting
 - **Location**: Informal settlements in Bihar, India
 - **Study Period**: June 4 - August 6, 2024
@@ -74,7 +67,7 @@ Run from the repository root:
 Negative coefficients indicate cooling. Standard errors clustered at the logger level.
 
 ### Method Summary
-We estimate difference-in-differences models comparing treated and control structures before and after intervention deployment, with settlement fixed effects, time controls, and environmental covariates. Outcome is indoor–outdoor temperature (°C).
+We estimate difference-in-differences models comparing treated and control structures before and after intervention deployment, with settlement fixed effects, and time controls. Outcome is indoor–outdoor temperature (°C).
 
 ### Software Requirements
 - Python 3.8+
