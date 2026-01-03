@@ -1,11 +1,9 @@
 ## Cooling Interventions for Informal Settlements: A Study in Bihar, India
 
 ### Overview
-This repository contains data, analysis code, and figures for a study evaluating low-cost passive cooling interventions for informal housing in Bihar, India. We study Radiant Barrier Foils (RBF) and Mylar Emergency Blankets (MEB) against controls using minute-level indoor temperatures from 42 loggers across two settlements. Using a difference-in-differences design with over 2.28 million 
-temperature observations from 42 data loggers across two settlement locations, 
-we find that both interventions provide significant cooling effects, with RBF 
-reducing indoor temperatures by 1.1-1.2°C and MEB by 1.0-1.3°C relative to 
-control structures.
+This repository contains data, analysis code, and figures for a study evaluating low-cost passive cooling interventions for informal housing in Bihar, India. We study Radiant Barrier Foils (RBF) and Mylar Emergency Blankets (MEB) against controls using minute-level indoor temperatures from 42 loggers across two settlements. Using a difference-in-differences design with over 2.28 million
+temperature observations from 42 data loggers across two settlement locations,
+we find that both interventions provide significant cooling effects, with a pooled intervention benefit of 1.12°C, RBF reducing indoor temperatures by 1.24°C, and MEB reducing indoor temperatures by 0.97°C relative to control structures.
 
 ### Quickstart
 - Create and activate a virtual environment (Windows PowerShell):
@@ -26,8 +24,6 @@ control structures.
 │   ├── hexbin_plots.py                  # Temperature–humidity hexbin plots with WBGT guides
 │   ├── master_dataframe.csv             # Minute-by-minute, analysis-ready panel
 │   ├── did_df.csv                       # Processed dataset for DID models
-│   ├── did_regression_results.txt       # Model outputs
-│   ├── Extended_Data_Table_1.html       # Publication-ready table
 │   ├── Cleaned Data/                    # Processed logger files per device
 │   └── Loggers Data/                    # Raw logger exports
 ├── Environmental Data.csv               # Hourly weather data (joined in analysis)
@@ -57,12 +53,11 @@ control structures.
   - Hourly weather time series joined to logger data in notebooks/scripts.
 
 ### Key Findings (from DID models)
-| Model Specification | RBF Effect (°C) | MEB Effect (°C) | p-value |
-|---------------------|-----------------|-----------------|---------|
-| Basic DiD | -1.122*** | -1.122*** | <0.01 |
-| Separate Technologies | -1.241*** | -0.972*** | <0.01 |
-| + Environmental Controls | -0.861* | -0.683 | 0.078 |
-| + Heterogeneous Effects | -1.109** | -1.298** | <0.05 |
+| Effect | Estimate (°C) | 95% CI | p-value |
+|--------|----------------|--------|---------|
+| Pooled intervention effect | -1.12 | [ -1.82, -0.42 ] | 0.002 |
+| RBF effect | -1.24 | [ -1.98, -0.50 ] | 0.001 |
+| MEB effect | -0.97 | [ -1.68, -0.27 ] | 0.007 |
 
 Negative coefficients indicate cooling. Standard errors clustered at the logger level.
 
@@ -85,7 +80,7 @@ We estimate difference-in-differences models comparing treated and control struc
 MIT License. See `LICENSE`.
 
 ### Effectiveness
-- **Significant cooling benefits**: 1-1.3°C temperature reduction
+- **Significant cooling benefits**: 0.97-1.24°C temperature reduction
 - **Easy implementation**: Suitable for community-led deployment
 
 Keywords: informal settlements, passive cooling, difference-in-differences, urban heat, Bihar, India
