@@ -1,4 +1,4 @@
-## Low-cost Cooling Interventions for Informal Settlements: A Study in Bihar, India
+## Low-cost Cooling Interventions for Informal Settlements (Bihar, India)
 
 ![Study overview](Figure1.jpg)
 
