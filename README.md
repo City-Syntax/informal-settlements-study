@@ -88,7 +88,7 @@ MIT License. See `LICENSE`.
 Keywords: informal settlements, passive cooling, difference-in-differences, urban heat, Bihar, India
 
 ### Attribution / Citation / Paper
-Ang YQ, Wang T, Sparsh, Chew LP (2026). Low-cost interventions for heat stress mitigation in urban informal settlements. *Nat Cities* (2026) https://doi.org/10.1038/s44284-025-00370-3
+Ang YQ, Wang T, Sparsh, Chew LW (2026). Low-cost interventions for heat stress mitigation in urban informal settlements. *Nat Cities* (2026) https://doi.org/10.1038/s44284-025-00370-3
 
 ### BibTeX
 ```bibtex
