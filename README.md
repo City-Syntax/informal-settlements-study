@@ -16,19 +16,19 @@ we find that both interventions provide significant cooling effects, with a pool
 ### Repository Structure (key items)
 ```
 ├── Data Analysis/
-│   ├── data_analysis.ipynb              # Primary data processing and descriptive analysis
-│   ├── did_analysis.ipynb               # Difference-in-differences models (main results)
-│   ├── did_analysis (new|old).ipynb     # Updated and archival DID analyses
-│   ├── Compare_Graph_Preview.py         # Average daily comparison plots
-│   ├── graph.py                         # EDA: scatter/box plots, correlations, t-tests
-│   ├── hexbin_plots.py                  # Temperature–humidity hexbin plots with WBGT guides
-│   ├── master_dataframe.csv             # Minute-by-minute, analysis-ready panel
-│   ├── did_df.csv                       # Processed dataset for DID models
-│   ├── Cleaned Data/                    # Processed logger files per device
-│   └── Loggers Data/                    # Raw logger exports
-├── Environmental Data.csv               # Hourly weather data (joined in analysis)
-├── download_weather.py                  # Weather.com scraper (optional; not required to reproduce)
-└── requirements.txt                     # Python dependencies
+│   ├── data_analysis.ipynb                              # Primary data processing and descriptive analysis
+│   ├── did_analysis (updated).ipynb                     # Difference-in-differences models (main results)
+│   ├── did_analysis (old).ipynb                         # Archival DID analyses
+│   ├── Compare_Graph_Preview.py                         # Average daily comparison plots
+│   ├── Compare_Graph_Temperature.ipynb                  # Average daily comparison plots (Temperature)
+│   ├── Compare_Graph_TemperatureDifference.ipynb        # Average daily comparison plots (Temperature)
+│   ├── graph.py                                         # EDA: scatter/box plots, correlations, t-tests
+│   ├── hexbin_plots.py                                  # Temperature–humidity hexbin plots with WBGT guides
+│   ├── Cleaned Data/                                    # Processed logger files per device
+│   └── Loggers Data/                                    # Raw logger exports
+├── Environmental Data.csv                               # Hourly weather data (joined in analysis)
+├── download_weather.py                                  # Weather.com scraper (optional; not required to reproduce)
+└── requirements.txt                                     # Python dependencies
 ```
 
 ### Experimental Setting
