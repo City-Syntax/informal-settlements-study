@@ -101,3 +101,6 @@ Ang YQ, Wang T, Sparsh, Chew LW (2026). Low-cost interventions for heat stress m
   url       = {https://www.nature.com/articles/s44284-025-00370-3}
 }
 ```
+
+### Contact
+We welcome questions, suggestions and feedback regarding this study. To request access to the raw data/infomation, including photographs and thermal imagery, please direct your correspondence to admin@citysyntax.io or yuqian@nus.edu.sg. 
