@@ -1,4 +1,6 @@
-## Cooling Interventions for Informal Settlements: A Study in Bihar, India
+## Low-cost Cooling Interventions for Informal Settlements: A Study in Bihar, India
+
+![Study overview](Figure1.jpg)
 
 ### Overview
 This repository contains data, analysis code, and figures for a study evaluating low-cost passive cooling interventions for informal housing in Bihar, India. We study Radiant Barrier Foils (RBF) and Mylar Emergency Blankets (MEB) against controls using minute-level indoor temperatures from 42 loggers across two settlements. Using a difference-in-differences design with over 2.28 million
@@ -11,7 +13,7 @@ we find that both interventions provide significant cooling effects, with a pool
   - `.\.venv\Scripts\Activate.ps1`
 - Install dependencies: `pip install -r requirements.txt`
 - Open the notebooks in `Data Analysis/` to reproduce the analysis, or run the plotting scripts below to regenerate figures.
-- Important: The plotting scripts expect the working directory to be `Data Analysis/`. See the commands below.
+- Important: The plotting scripts expect the working directory to be `Data Analysis/`.
 
 ### Repository Structure (key items)
 ```
